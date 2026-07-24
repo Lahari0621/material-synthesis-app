@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/session_service.dart';
 import 'login_screen.dart';
-import 'synthesis_dashboard.dart';
+import 'main_app_shell.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -35,6 +37,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final result = await ApiService.register(name, email, password);
 
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       _isLoading = false;
     });
@@ -44,9 +50,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _errorMessage = result['error'];
       });
     } else {
+      final user = User.fromJson(result);
+      await SessionService.saveUser(user);
+      if (!mounted) {
+        return;
+      }
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => SynthesisDashboard()),
+        MaterialPageRoute(builder: (context) => MainAppShell(user: user)),
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/session_service.dart';
 import 'login_screen.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -39,11 +40,20 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (confirmed == true) {
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _isLoggingOut = true;
       });
 
       await ApiService.logout(widget.user.id);
+      await SessionService.clearUser();
+
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _isLoggingOut = false;
@@ -124,11 +134,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                             child: Center(
                               child: Text(
-                                widget.user.name
-                                    .split(' ')
-                                    .map((e) => e[0])
-                                    .join()
-                                    .toUpperCase(),
+                                _buildInitials(widget.user.name),
                                 style: TextStyle(
                                   fontSize: 32,
                                   fontWeight: FontWeight.bold,
@@ -415,6 +421,21 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  String _buildInitials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      return 'U';
+    }
+
+    final letters = trimmed
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => part[0])
+        .join();
+
+    return letters.isEmpty ? 'U' : letters.toUpperCase();
   }
 }
 

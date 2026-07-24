@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/session_service.dart';
 import 'main_app_shell.dart';
 import 'register_screen.dart';
 
@@ -35,6 +36,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final result = await ApiService.login(email, password);
 
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       _isLoading = false;
     });
@@ -46,6 +51,10 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       // Create User object from login response
       final user = User.fromJson(result);
+      await SessionService.saveUser(user);
+      if (!mounted) {
+        return;
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainAppShell(user: user)),
