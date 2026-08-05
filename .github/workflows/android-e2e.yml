@@ -78,7 +78,7 @@ jobs:
       APK_PATH: ${{ github.workspace }}/app-debug.apk
       APPIUM_SERVER_URL: http://127.0.0.1:4723
       ANDROID_UDID: emulator-5554
-      ANDROID_VERSION: "34"
+      ANDROID_VERSION: "29"
       GITHUB_RUN_NUMBER: ${{ github.run_number }}
       GITHUB_SHA: ${{ github.sha }}
       GITHUB_REF_NAME: ${{ github.ref_name }}
@@ -146,13 +146,13 @@ jobs:
       - name: Stage 6-13 · Emulator, APK, Appium, tests, evidence
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 29
           target: google_apis
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
           cores: 2
-          ram-size: 4096M
-          heap-size: 1024M
+          ram-size: 2048M
+          heap-size: 512M
           disable-animations: true
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
@@ -225,7 +225,7 @@ jobs:
       GITHUB_RUN_NUMBER: ${{ github.run_number }}
       GITHUB_SHA: ${{ github.sha }}
       GITHUB_REF_NAME: ${{ github.ref_name }}
-      ANDROID_VERSION: "34"
+      ANDROID_VERSION: "29"
 
     steps:
       - name: Checkout repository
