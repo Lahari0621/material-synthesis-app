@@ -1,0 +1,20 @@
+{
+  "name": "smart-furnace-selenium-e2e",
+  "version": "1.0.0",
+  "description": "Selenium end-to-end tests and Excel analysis for Smart Furnace AI web",
+  "private": true,
+  "scripts": {
+    "test": "node run_e2e.js --driver simulated",
+    "test:simulated": "node run_e2e.js --driver simulated",
+    "test:selenium": "node run_e2e.js --driver selenium",
+    "report": "node -e \"console.log('Report: reports/Selenium_E2E_Excel_Analysis_Report.xlsx')\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "mocha": "^11.1.0",
+    "selenium-webdriver": "^4.29.0"
+  }
+}

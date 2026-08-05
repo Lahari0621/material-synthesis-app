@@ -1,10 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'models/user_model.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_app_shell.dart';
 import 'services/session_service.dart';
 
 void main() {
+  // Make Flutter web widgets discoverable for Selenium / accessibility.
+  if (kIsWeb) {
+    SemanticsBinding.instance.ensureSemantics();
+  }
   runApp(const SmartFurnaceApp());
 }
 

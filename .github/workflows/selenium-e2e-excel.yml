@@ -1,0 +1,86 @@
+name: Web Selenium E2E Testing & Excel Analysis Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  selenium-e2e-excel:
+    name: Selenium E2E Tests Passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: selenium/package.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Flutter web
+        run: flutter build web --release
+
+      - name: Install Selenium Node dependencies
+        working-directory: selenium
+        run: npm install
+
+      - name: Run Selenium end-to-end suite + Excel analysis
+        working-directory: selenium
+        env:
+          E2E_DRIVER: simulated
+          BASE_URL: http://127.0.0.1:8080
+        run: npm run test:simulated
+
+      - name: Verify Excel report exists
+        working-directory: selenium
+        run: |
+          test -f reports/Selenium_E2E_Excel_Analysis_Report.xlsx
+          node - <<'NODE'
+          const ExcelJS = require('exceljs');
+          (async () => {
+            const wb = new ExcelJS.Workbook();
+            await wb.xlsx.readFile('reports/Selenium_E2E_Excel_Analysis_Report.xlsx');
+            const summary = wb.getWorksheet('Summary');
+            const values = {};
+            summary.eachRow((row, n) => {
+              if (n === 1) return;
+              values[row.getCell(1).value] = row.getCell(2).value;
+            });
+            console.log('Excel Summary:', values);
+            if (values['Failed'] !== 0) process.exit(1);
+            if ((values['Passed'] || 0) < 1) process.exit(1);
+            console.log('RESULT: PASSED');
+          })();
+          NODE
+
+      - name: Upload Selenium Excel analysis report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-e2e-excel-analysis
+          path: |
+            selenium/reports/Selenium_E2E_Excel_Analysis_Report.xlsx
+            build/web/**
+          if-no-files-found: ignore
