@@ -277,6 +277,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      key: const Key('dashboard_base_material_field'),
                       controller: _baseMaterialController,
                       decoration: InputDecoration(
                         hintText: "e.g., Iron Oxide (Fe2O3)",
@@ -300,6 +301,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      key: const Key('dashboard_target_material_field'),
                       controller: _targetMaterialController,
                       decoration: InputDecoration(
                         hintText: "e.g., Iron Nanoparticles",
@@ -366,6 +368,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     _isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : ElevatedButton(
+                            key: const Key('dashboard_check_feasibility_button'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange[600],
                               padding: const EdgeInsets.symmetric(vertical: 16),

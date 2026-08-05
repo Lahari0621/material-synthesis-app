@@ -100,6 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         TextFormField(
+                          key: const Key('register_name_field'),
                           controller: _nameController,
                           decoration: const InputDecoration(
                             labelText: "Full Name",
@@ -119,6 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
 
                         TextFormField(
+                          key: const Key('register_email_field'),
                           controller: _emailController,
                           decoration: const InputDecoration(
                             labelText: "Institutional Email",
@@ -141,6 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
 
                         TextFormField(
+                          key: const Key('register_password_field'),
                           controller: _passwordController,
                           decoration: const InputDecoration(
                             labelText: "Create Password",
@@ -176,6 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _isLoading
                             ? const Center(child: CircularProgressIndicator())
                             : ElevatedButton(
+                                key: const Key('register_submit_button'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.lightBlue[800],
                                   padding: const EdgeInsets.symmetric(

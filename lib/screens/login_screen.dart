@@ -121,6 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // NEW: Changed TextField to TextFormField for validation
                         TextFormField(
+                          key: const Key('login_email_field'),
                           controller: _emailController,
                           decoration: const InputDecoration(
                             labelText: "Institutional Email",
@@ -144,6 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 16),
 
                         TextFormField(
+                          key: const Key('login_password_field'),
                           controller: _passwordController,
                           decoration: const InputDecoration(
                             labelText: "Password",
@@ -176,6 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         _isLoading
                             ? const Center(child: CircularProgressIndicator())
                             : ElevatedButton(
+                                key: const Key('login_submit_button'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.orange[600],
                                   padding: const EdgeInsets.symmetric(
@@ -203,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 24),
 
               TextButton(
+                key: const Key('login_register_link'),
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,

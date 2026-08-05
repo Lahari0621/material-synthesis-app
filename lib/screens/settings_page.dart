@@ -385,6 +385,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         : SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
+                              key: const Key('settings_logout_button'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red[600],
                                 padding: const EdgeInsets.symmetric(
