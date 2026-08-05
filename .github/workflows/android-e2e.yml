@@ -66,9 +66,12 @@ jobs:
     name: Appium shard ${{ matrix.shard }} of 4
     needs: build-apk
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       fail-fast: false
+      # Hosted runners struggle with multiple concurrent emulators.
+      # Keep 4 logical shards but execute them one at a time.
+      max-parallel: 1
       matrix:
         shard: [0, 1, 2, 3]
 
@@ -147,62 +150,21 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          target: google_apis
+          target: default
           arch: x86_64
           profile: pixel_2
           cores: 2
           ram-size: 2048M
           heap-size: 512M
+          force-avd-creation: true
+          emulator-boot-timeout: 1200
           disable-animations: true
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
             -camera-back none -camera-front none
           script: |
-            set -e
-            echo "Stage 7 · Verify emulator readiness"
-            adb wait-for-device
-            adb shell getprop sys.boot_completed | grep -m 1 "1"
-            adb devices
-
-            echo "Stage 8 · Install APK"
-            adb install -r "${APK_PATH}"
-            adb shell pm list packages | grep com.example.ai_smart_furncae_change
-
-            echo "Stage 9 · Start Appium"
-            nohup appium --relaxed-security \
-              --log "automation/logs/appium-shard-${TEST_SHARD_INDEX}.log" \
-              > "automation/logs/appium-console-shard-${TEST_SHARD_INDEX}.log" 2>&1 &
-            echo $! > automation/logs/appium.pid
-
-            echo "Stage 10 · Verify Appium health"
-            for i in $(seq 1 60); do
-              if curl -sf http://127.0.0.1:4723/status >/dev/null; then
-                echo "Appium is healthy"
-                break
-              fi
-              if [ "$i" = "60" ]; then
-                cat "automation/logs/appium-console-shard-${TEST_SHARD_INDEX}.log"
-                exit 1
-              fi
-              sleep 2
-            done
-
-            echo "Stage 11 · Execute real Appium E2E cases"
-            cd automation
-            set +e
-            pytest tests/test_enterprise_catalog.py \
-              --reruns 2 --reruns-delay 1 -v
-            TEST_EXIT=$?
-            set -e
-            echo "$TEST_EXIT" > "logs/pytest-exit-shard-${TEST_SHARD_INDEX}.txt"
-
-            echo "Stage 12-13 · Capture device screenshots and logs"
-            adb exec-out screencap -p > \
-              "Test Results/Screenshots/final-device-shard-${TEST_SHARD_INDEX}.png" || true
-            adb logcat -d > \
-              "Test Results/Logs/device-logcat-shard-${TEST_SHARD_INDEX}.txt" || true
-            adb shell dumpsys package com.example.ai_smart_furncae_change > \
-              "Test Results/Logs/package-shard-${TEST_SHARD_INDEX}.txt" || true
+            chmod +x automation/runners/run_emulator_shard.sh
+            automation/runners/run_emulator_shard.sh
 
       - name: Upload shard evidence
         if: always()
@@ -277,11 +239,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-e2e-enterprise-report
-          path: automation/Test Results/**
-          if-no-files-found: error
+          path: |
+            automation/Test Results/**
+            automation/collected-shards/**
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Enforce enterprise quality gate
         run: |
+          if [ ! -f automation/Test\ Results/JSON/execution-results.json ]; then
+            echo "Complete report is missing; infrastructure or shard collection failed."
+            exit 1
+          fi
           test "${{ steps.report.outputs.report_exit }}" = "0"
 
