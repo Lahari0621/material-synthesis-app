@@ -99,67 +99,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        TextFormField(
-                          key: const Key('register_name_field'),
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: "Full Name",
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person_outline),
+                        Semantics(
+                          identifier: 'register_name_field',
+                          textField: true,
+                          child: TextFormField(
+                            key: const Key('register_name_field'),
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: "Full Name",
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Scientist name is required.';
+                              }
+                              if (value.trim().length < 2) {
+                                return 'Name must be at least 2 characters.';
+                              }
+                              return null;
+                            },
                           ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Scientist name is required.';
-                            }
-                            if (value.trim().length < 2) {
-                              return 'Name must be at least 2 characters.';
-                            }
-                            return null;
-                          },
                         ),
                         const SizedBox(height: 16),
 
-                        TextFormField(
-                          key: const Key('register_email_field'),
-                          controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: "Institutional Email",
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.email_outlined),
+                        Semantics(
+                          identifier: 'register_email_field',
+                          textField: true,
+                          child: TextFormField(
+                            key: const Key('register_email_field'),
+                            controller: _emailController,
+                            decoration: const InputDecoration(
+                              labelText: "Institutional Email",
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Email is required.';
+                              }
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(value)) {
+                                return 'Please enter a valid email format.';
+                              }
+                              return null;
+                            },
                           ),
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Email is required.';
-                            }
-                            if (!RegExp(
-                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                            ).hasMatch(value)) {
-                              return 'Please enter a valid email format.';
-                            }
-                            return null;
-                          },
                         ),
                         const SizedBox(height: 16),
 
-                        TextFormField(
-                          key: const Key('register_password_field'),
-                          controller: _passwordController,
-                          decoration: const InputDecoration(
-                            labelText: "Create Password",
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock_outline),
+                        Semantics(
+                          identifier: 'register_password_field',
+                          textField: true,
+                          child: TextFormField(
+                            key: const Key('register_password_field'),
+                            controller: _passwordController,
+                            decoration: const InputDecoration(
+                              labelText: "Create Password",
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.lock_outline),
+                            ),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Password is required.';
+                              }
+                              if (value.length < 6) {
+                                return 'Password must be at least 6 characters for security.';
+                              }
+                              return null;
+                            },
                           ),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Password is required.';
-                            }
-                            if (value.length < 6) {
-                              return 'Password must be at least 6 characters for security.';
-                            }
-                            return null;
-                          },
                         ),
                         const SizedBox(height: 16),
 

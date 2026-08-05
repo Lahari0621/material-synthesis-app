@@ -120,45 +120,52 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 24),
 
                         // NEW: Changed TextField to TextFormField for validation
-                        TextFormField(
-                          key: const Key('login_email_field'),
-                          controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: "Institutional Email",
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.email_outlined),
+                        Semantics(
+                          identifier: 'login_email_field',
+                          textField: true,
+                          child: TextFormField(
+                            key: const Key('login_email_field'),
+                            controller: _emailController,
+                            decoration: const InputDecoration(
+                              labelText: "Institutional Email",
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your email address.';
+                              }
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(value)) {
+                                return 'Please enter a valid email (e.g., name@domain.com).';
+                              }
+                              return null;
+                            },
                           ),
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your email address.';
-                            }
-                            // Regex check for standard email format
-                            if (!RegExp(
-                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                            ).hasMatch(value)) {
-                              return 'Please enter a valid email (e.g., name@domain.com).';
-                            }
-                            return null;
-                          },
                         ),
                         const SizedBox(height: 16),
 
-                        TextFormField(
-                          key: const Key('login_password_field'),
-                          controller: _passwordController,
-                          decoration: const InputDecoration(
-                            labelText: "Password",
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock_outline),
+                        Semantics(
+                          identifier: 'login_password_field',
+                          textField: true,
+                          child: TextFormField(
+                            key: const Key('login_password_field'),
+                            controller: _passwordController,
+                            decoration: const InputDecoration(
+                              labelText: "Password",
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.lock_outline),
+                            ),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your password.';
+                              }
+                              return null;
+                            },
                           ),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your password.';
-                            }
-                            return null;
-                          },
                         ),
                         const SizedBox(height: 16),
 

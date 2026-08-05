@@ -1,0 +1,108 @@
+name: Deploy Android E2E Reports to GitHub Pages
+
+on:
+  workflow_run:
+    workflows: ["Enterprise Android Appium E2E"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Enterprise Android E2E workflow run ID"
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+
+concurrency:
+  group: github-pages-reports
+  cancel-in-progress: false
+
+jobs:
+  deploy-reports:
+    name: Stage 19-20 · Publish latest and historical reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_RUN_ID: ${{ inputs.run_id || github.event.workflow_run.id }}
+      BUILD_NUMBER: ${{ github.event.workflow_run.run_number || inputs.run_id }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download enterprise report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-e2e-enterprise-report
+          path: downloaded-report
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare latest and historical Pages structure
+        run: |
+          test -f downloaded-report/HTML/execution-report.html
+          mkdir -p public/reports/latest
+          mkdir -p "public/reports/history/build-${BUILD_NUMBER}"
+
+          cp -R downloaded-report/. public/reports/latest/
+          cp -R downloaded-report/. "public/reports/history/build-${BUILD_NUMBER}/"
+
+          cp downloaded-report/HTML/execution-report.html \
+            public/reports/latest/execution-report.html
+          cp downloaded-report/HTML/dashboard.html \
+            public/reports/latest/dashboard.html
+          cp downloaded-report/HTML/trends.html \
+            public/reports/latest/trends.html
+          cp downloaded-report/Summary/summary.md \
+            public/reports/latest/summary.md
+
+          cat > public/index.html <<'HTML'
+          <!doctype html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=reports/latest/execution-report.html">
+              <title>Smart Furnace Android E2E Reports</title>
+            </head>
+            <body>
+              <a href="reports/latest/execution-report.html">Open latest report</a>
+            </body>
+          </html>
+          HTML
+
+          touch public/.nojekyll
+
+      - name: Stage 19-20 · Publish to gh-pages with history preserved
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          keep_files: true
+          force_orphan: false
+          commit_message: >-
+            reports: archive Android E2E build ${{ env.BUILD_NUMBER }}
+
+      - name: Ensure GitHub Pages serves gh-pages
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo '{"source":{"branch":"gh-pages","path":"/"}}' |
+              gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" --input -
+          else
+            echo '{"source":{"branch":"gh-pages","path":"/"}}' |
+              gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" --input -
+          fi
+
+      - name: Publish live report URL
+        run: |
+          URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/reports/latest/execution-report.html"
+          echo "# Android E2E Report Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live report: ${URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "History: build-${BUILD_NUMBER}" >> "$GITHUB_STEP_SUMMARY"
+

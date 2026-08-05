@@ -276,16 +276,20 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextField(
-                      key: const Key('dashboard_base_material_field'),
-                      controller: _baseMaterialController,
-                      decoration: InputDecoration(
-                        hintText: "e.g., Iron Oxide (Fe2O3)",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    Semantics(
+                      identifier: 'dashboard_base_material_field',
+                      textField: true,
+                      child: TextField(
+                        key: const Key('dashboard_base_material_field'),
+                        controller: _baseMaterialController,
+                        decoration: InputDecoration(
+                          hintText: "e.g., Iron Oxide (Fe2O3)",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          prefixIcon: const Icon(Icons.science),
+                          prefixIconColor: Colors.orange[600],
                         ),
-                        prefixIcon: const Icon(Icons.science),
-                        prefixIconColor: Colors.orange[600],
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -300,16 +304,20 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextField(
-                      key: const Key('dashboard_target_material_field'),
-                      controller: _targetMaterialController,
-                      decoration: InputDecoration(
-                        hintText: "e.g., Iron Nanoparticles",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    Semantics(
+                      identifier: 'dashboard_target_material_field',
+                      textField: true,
+                      child: TextField(
+                        key: const Key('dashboard_target_material_field'),
+                        controller: _targetMaterialController,
+                        decoration: InputDecoration(
+                          hintText: "e.g., Iron Nanoparticles",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          prefixIcon: const Icon(Icons.science),
+                          prefixIconColor: Colors.orange[600],
                         ),
-                        prefixIcon: const Icon(Icons.science),
-                        prefixIconColor: Colors.orange[600],
                       ),
                     ),
                     const SizedBox(height: 24),

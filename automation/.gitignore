@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+reports/*
+!reports/.gitkeep
+screenshots/*
+!screenshots/.gitkeep
+logs/*
+!logs/.gitkeep
+Test Results/Excel/*
+Test Results/HTML/*
+Test Results/JSON/*
+Test Results/Screenshots/*
+Test Results/Logs/*
+Test Results/Summary/*
+!Test Results/**/.gitkeep
+collected-shards/
+

@@ -1,0 +1,280 @@
+name: Enterprise Android Appium E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "30 1 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: android-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Stage 1-5 · Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Stage 1 · Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Stage 2 · Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Stage 3 · Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Stage 4 · Set up Flutter and dependencies
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Stage 4 · Install Android dependencies
+        run: |
+          flutter --version
+          flutter pub get
+          flutter analyze --no-fatal-infos
+
+      - name: Stage 5 · Build debug APK
+        run: flutter build apk --debug
+
+      - name: Verify APK
+        run: |
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+          ls -lh build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
+
+  appium-shards:
+    name: Appium shard ${{ matrix.shard }} of 4
+    needs: build-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+
+    env:
+      TEST_SHARD_INDEX: ${{ matrix.shard }}
+      TEST_SHARD_TOTAL: "4"
+      APK_PATH: ${{ github.workspace }}/app-debug.apk
+      APPIUM_SERVER_URL: http://127.0.0.1:4723
+      ANDROID_UDID: emulator-5554
+      ANDROID_VERSION: "35"
+      GITHUB_RUN_NUMBER: ${{ github.run_number }}
+      GITHUB_SHA: ${{ github.sha }}
+      GITHUB_REF_NAME: ${{ github.ref_name }}
+
+    steps:
+      - name: Stage 1 · Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Stage 2 · Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Stage 3-4 · Set up Android SDK and Node.js
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: automation/requirements.txt
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-debug-apk
+
+      - name: Install Appium and test dependencies
+        run: |
+          npm install --global appium
+          appium driver install uiautomator2
+          python -m pip install --upgrade pip
+          pip install -r automation/requirements.txt
+          python automation/data/generate_test_catalog.py
+          test "$(python -c "import json; print(len(json.load(open('automation/data/test_cases.json'))))")" = "510"
+
+      - name: Start deterministic E2E API
+        run: |
+          nohup python automation/resources/mock_backend.py \
+            > automation/logs/mock-backend-shard-${{ matrix.shard }}.log 2>&1 &
+          echo $! > automation/logs/mock-backend.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:5000/api/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mock backend failed to start"
+          exit 1
+
+      - name: Stage 6-13 · Emulator, APK, Appium, tests, evidence
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 2
+          ram-size: 4096M
+          heap-size: 1024M
+          disable-animations: true
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          script: |
+            set -e
+            echo "Stage 7 · Verify emulator readiness"
+            adb wait-for-device
+            adb shell getprop sys.boot_completed | grep -m 1 "1"
+            adb devices
+
+            echo "Stage 8 · Install APK"
+            adb install -r "${APK_PATH}"
+            adb shell pm list packages | grep com.example.ai_smart_furncae_change
+
+            echo "Stage 9 · Start Appium"
+            nohup appium --relaxed-security \
+              --log "automation/logs/appium-shard-${TEST_SHARD_INDEX}.log" \
+              > "automation/logs/appium-console-shard-${TEST_SHARD_INDEX}.log" 2>&1 &
+            echo $! > automation/logs/appium.pid
+
+            echo "Stage 10 · Verify Appium health"
+            for i in $(seq 1 60); do
+              if curl -sf http://127.0.0.1:4723/status >/dev/null; then
+                echo "Appium is healthy"
+                break
+              fi
+              if [ "$i" = "60" ]; then
+                cat "automation/logs/appium-console-shard-${TEST_SHARD_INDEX}.log"
+                exit 1
+              fi
+              sleep 2
+            done
+
+            echo "Stage 11 · Execute real Appium E2E cases"
+            cd automation
+            set +e
+            pytest tests/test_enterprise_catalog.py \
+              --reruns 2 --reruns-delay 1 -v
+            TEST_EXIT=$?
+            set -e
+            echo "$TEST_EXIT" > "logs/pytest-exit-shard-${TEST_SHARD_INDEX}.txt"
+
+            echo "Stage 12-13 · Capture device screenshots and logs"
+            adb exec-out screencap -p > \
+              "Test Results/Screenshots/final-device-shard-${TEST_SHARD_INDEX}.png" || true
+            adb logcat -d > \
+              "Test Results/Logs/device-logcat-shard-${TEST_SHARD_INDEX}.txt" || true
+            adb shell dumpsys package com.example.ai_smart_furncae_change > \
+              "Test Results/Logs/package-shard-${TEST_SHARD_INDEX}.txt" || true
+
+      - name: Upload shard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-shard-${{ matrix.shard }}
+          path: |
+            automation/Test Results/**
+            automation/logs/**
+          if-no-files-found: warn
+          retention-days: 30
+
+  aggregate-reports:
+    name: Stage 14-18 · Reports, summary, artifacts
+    if: always()
+    needs: appium-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GITHUB_RUN_NUMBER: ${{ github.run_number }}
+      GITHUB_SHA: ${{ github.sha }}
+      GITHUB_REF_NAME: ${{ github.ref_name }}
+      ANDROID_VERSION: "35"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: automation/requirements.txt
+
+      - name: Install reporting dependencies
+        run: pip install -r automation/requirements.txt
+
+      - name: Download all shard artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: appium-shard-*
+          path: automation/collected-shards
+          merge-multiple: true
+
+      - name: Stage 14-17 · Generate Excel, HTML, JSON, Markdown
+        id: report
+        continue-on-error: true
+        working-directory: automation
+        run: |
+          set +e
+          python utils/report_generator.py \
+            --input collected-shards \
+            --output "Test Results"
+          REPORT_EXIT=$?
+          set -e
+          echo "report_exit=${REPORT_EXIT}" >> "$GITHUB_OUTPUT"
+
+      - name: Stage 21 · Publish GitHub Actions summary
+        if: always()
+        working-directory: automation
+        run: |
+          if [ -f "Test Results/JSON/execution-results.json" ]; then
+            python utils/publish_actions_summary.py
+          else
+            echo "# Android Appium E2E Infrastructure Failure" >> "$GITHUB_STEP_SUMMARY"
+            echo "The complete 510-case report could not be generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Stage 18 · Upload complete test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-e2e-enterprise-report
+          path: automation/Test Results/**
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce enterprise quality gate
+        run: |
+          test "${{ steps.report.outputs.report_exit }}" = "0"
+
