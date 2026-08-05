@@ -30,7 +30,7 @@ APK_PATH = Path(
 )
 DEVICE_NAME = os.getenv("DEVICE_NAME", "Android Emulator")
 UDID = os.getenv("ANDROID_UDID", "emulator-5554")
-PLATFORM_VERSION = os.getenv("ANDROID_VERSION", "35")
+PLATFORM_VERSION = os.getenv("ANDROID_VERSION", "34")
 APP_VERSION = os.getenv("APP_VERSION", "1.0.0+1")
 
 SHARD_INDEX = int(os.getenv("TEST_SHARD_INDEX", "0"))

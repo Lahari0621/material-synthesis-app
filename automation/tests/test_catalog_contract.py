@@ -37,7 +37,7 @@ def test_all_report_formats_are_generated(tmp_path):
         payload = {
             "metadata": {
                 "device": "Contract Test",
-                "android_version": "35",
+                "android_version": "34",
                 "shard_index": index,
             },
             "results": rows,
