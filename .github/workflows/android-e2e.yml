@@ -124,6 +124,13 @@ jobs:
 
       - name: Start deterministic E2E API
         run: |
+          mkdir -p automation/logs
+          mkdir -p "automation/Test Results/Excel"
+          mkdir -p "automation/Test Results/HTML"
+          mkdir -p "automation/Test Results/JSON"
+          mkdir -p "automation/Test Results/Screenshots"
+          mkdir -p "automation/Test Results/Logs"
+          mkdir -p "automation/Test Results/Summary"
           nohup python automation/resources/mock_backend.py \
             > automation/logs/mock-backend-shard-${{ matrix.shard }}.log 2>&1 &
           echo $! > automation/logs/mock-backend.pid
