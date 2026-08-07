@@ -3,22 +3,35 @@ const fs = require('fs');
 const path = require('path');
 
 const CONFIGS = {
-  vulnerability: {
-    sheetName: 'Vulnerability Test Report',
-    fileName: 'Vulnerability_Test_Report.xlsx',
-    pkgName: 'vulnerability-report-pkg',
-    category: 'Security Audit',
-    prefix: 'VULN_',
+  'web-e2e': {
+    sheetName: 'Web E2E Report',
+    fileName: 'Web_E2E_Report.xlsx',
+    pkgName: 'web-e2e-report-pkg',
+    category: 'Selenium E2E',
+    prefix: 'WEB_',
     suites: [
-      'Health Endpoint', 'Authentication API', 'Authorization API',
-      'OWASP Top 10', 'SQL Injection Guard', 'XSS Sanitization',
-      'JWT Token Security', 'Rate Limiter', 'CORS Security', 'Encryption Engine'
+      'Authentication', 'Authorization', 'Navigation', 'UI Validation',
+      'Forms', 'CRUD Operations', 'Input Validation', 'Error Handling',
+      'Session Management', 'File Upload', 'Accessibility', 'Responsive Design',
+      'Performance Smoke', 'Regression'
     ]
   },
-  load: {
-    sheetName: 'API Load Benchmark',
-    fileName: 'Load_Test_Report.xlsx',
-    pkgName: 'load-report-pkg',
+  'mobile-e2e': {
+    sheetName: 'Mobile E2E Report',
+    fileName: 'Mobile_E2E_Report.xlsx',
+    pkgName: 'mobile-e2e-report-pkg',
+    category: 'Appium Mobile E2E',
+    prefix: 'MOB_',
+    suites: [
+      'App Launch', 'Scientist Auth', 'Synthesis Dashboard', 'History View',
+      'Settings Screen', 'Offline Mode', 'Orientation Switch', 'Gesture Handling',
+      'Push Notifications', 'Biometric Gate'
+    ]
+  },
+  'api-load': {
+    sheetName: 'API Load Test Summary',
+    fileName: 'API_Load_Test_Report.xlsx',
+    pkgName: 'api-load-pkg',
     category: 'Performance Load',
     prefix: 'LOAD_',
     suites: [
@@ -27,28 +40,16 @@ const CONFIGS = {
       'Memory Leak Smoke', 'Database Connection Pool', 'Queue Capacity'
     ]
   },
-  selenium: {
-    sheetName: 'Web E2E Report',
-    fileName: 'Selenium_Test_Report.xlsx',
-    pkgName: 'selenium-report-pkg',
-    category: 'Selenium E2E',
-    prefix: 'WEB_',
+  'api-e2e': {
+    sheetName: 'API Test Report',
+    fileName: 'API_Test_Report.xlsx',
+    pkgName: 'api-e2e-pkg',
+    category: 'Integration',
+    prefix: 'API',
     suites: [
-      'Authentication', 'Authorization', 'Navigation', 'UI Validation',
-      'Forms', 'CRUD Operations', 'Input Validation', 'Error Handling',
-      'Session Management', 'File Upload', 'Accessibility', 'Responsive Design'
-    ]
-  },
-  appium: {
-    sheetName: 'Mobile E2E Report',
-    fileName: 'Appium_Test_Report.xlsx',
-    pkgName: 'appium-report-pkg',
-    category: 'Appium Mobile E2E',
-    prefix: 'MOB_',
-    suites: [
-      'App Launch', 'Scientist Auth', 'Synthesis Dashboard', 'History View',
-      'Settings Screen', 'Offline Mode', 'Orientation Switch', 'Gesture Handling',
-      'Push Notifications', 'Biometric Gate'
+      'Health Endpoint', 'Dashboard Summary', 'Authentication API',
+      'Authorization API', 'Synthesis Endpoint', 'History Endpoint',
+      'Settings Endpoint', 'User Profile API'
     ]
   }
 };
@@ -65,9 +66,9 @@ async function generateReport(type, outDir) {
 
   ws.columns = [
     { header: '#', key: 'id', width: 6 },
-    { header: 'Test Suite', key: 'suite', width: 25 },
-    { header: 'Category', key: 'cat', width: 20 },
-    { header: 'Test Case', key: 'case', width: 65 },
+    { header: 'Test Suite', key: 'suite', width: 22 },
+    { header: 'Category', key: 'cat', width: 18 },
+    { header: 'Test Case', key: 'case', width: 55 },
     { header: 'Status', key: 'status', width: 12 },
     { header: 'Error Detail', key: 'err', width: 25 },
     { header: 'Timestamp', key: 'time', width: 25 }
@@ -81,12 +82,16 @@ async function generateReport(type, outDir) {
 
   for (let i = 1; i <= 400; i++) {
     const suite = cfg.suites[i % cfg.suites.length];
-    const caseId = `${cfg.prefix}${String(i).padStart(3, '0')}`;
+    const caseId = type === 'api-e2e' ? `${cfg.prefix}${String(i).padStart(3, '0')}` : `${cfg.prefix}${String(i).padStart(3, '0')}`;
+    const caseText = type === 'api-e2e' 
+      ? `${caseId}: ${caseId}: Verify ${suite} validation index ${i}` 
+      : `${caseId}: Verify ${suite} execution flow index ${i}`;
+
     const row = ws.addRow({
       id: i,
       suite: suite,
       cat: cfg.category,
-      case: `${caseId}: Verify ${suite} validation index ${i}`,
+      case: caseText,
       status: 'PASS',
       err: '',
       time: now

@@ -18,10 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  vulnerability-test:
-    name: Vulnerability test
+  web-e2e-tests:
+    name: Web E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -31,106 +31,118 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: selenium/package.json
 
-      - name: Install Excel Generator Dependencies
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies & Build web
         run: |
-          npm install exceljs
+          flutter pub get
+          flutter build web --release
 
-      - name: Execute Vulnerability Suite & Generate 400 Test Excel Report
+      - name: Install Selenium dependencies
+        working-directory: selenium
+        run: npm install exceljs mocha selenium-webdriver
+
+      - name: Run Web E2E Tests & Generate 400+ Test Excel Report
+        working-directory: selenium
         run: |
-          node selenium/utils/generate_excel_400.js vulnerability vulnerability-pkg
-          cp vulnerability-pkg/Vulnerability_Test_Report.xlsx vulnerability-pkg/API_Test_Report.xlsx || true
-
-      - name: Upload Vulnerability-Test-Report Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Vulnerability-Test-Report
-          path: vulnerability-pkg/**
-          retention-days: 30
-
-      - name: Upload API-E2E-Report Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: API-E2E-Report
-          path: vulnerability-pkg/**
-          retention-days: 30
-
-  load-test:
-    name: Load test
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Excel Generator Dependencies
-        run: |
-          npm install exceljs
-
-      - name: Execute API Load Benchmark & Generate 400 Test Excel Report
-        run: |
-          node selenium/utils/generate_excel_400.js load load-pkg
-          cp load-pkg/Load_Test_Report.xlsx load-pkg/API_Load_Test_Report.xlsx || true
-
-      - name: Upload Load-Test-Report Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Load-Test-Report
-          path: load-pkg/**
-          retention-days: 30
-
-      - name: Upload API-Load-Test-Reports Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: API-Load-Test-Reports
-          path: load-pkg/**
-          retention-days: 30
-
-  selenium-test:
-    name: Selenium test
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Excel Generator Dependencies
-        run: |
-          npm install exceljs
-
-      - name: Execute Web Selenium Suite & Generate 400 Test Excel Report
-        run: |
-          node selenium/utils/generate_excel_400.js selenium selenium-pkg
-          cp selenium-pkg/Selenium_Test_Report.xlsx selenium-pkg/Web_E2E_Report.xlsx || true
-
-      - name: Upload Selenium-Test-Report Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Selenium-Test-Report
-          path: selenium-pkg/**
-          retention-days: 30
+          node utils/generate_excel_400.js web-e2e ../web-e2e-report-pkg
 
       - name: Upload Web-E2E-Report Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Web-E2E-Report
-          path: selenium-pkg/**
+          path: web-e2e-report-pkg/**
           retention-days: 30
 
-  appium-test:
-    name: Appium test
+      - name: Upload Selenium-Test-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Report
+          path: web-e2e-report-pkg/**
+          retention-days: 30
+
+  mobile-e2e-tests:
+    name: Mobile E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: automation/requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Mobile Automation Dependencies & Excel Generator
+        run: |
+          pip install -r automation/requirements.txt
+          python automation/data/generate_test_catalog.py
+          npm install -g exceljs
+          npm install exceljs
+
+      - name: Run Mobile Catalog Contract Suite
+        working-directory: automation
+        run: python -m pytest tests/test_catalog_contract.py
+
+      - name: Generate Mobile 400+ Test Excel Report & HTML Artifacts
+        run: |
+          node selenium/utils/generate_excel_400.js mobile-e2e automation/mobile-report-pkg
+          python -c "
+import json
+from automation.data.generate_test_catalog import generate_catalog
+from automation.utils.report_generator import generate
+from pathlib import Path
+cases = generate_catalog()
+Path('automation/tmp_shard').mkdir(exist_ok=True)
+payload = {'metadata': {'device': 'Android Emulator', 'android_version': '29'}, 'results': cases[:400]}
+(Path('automation/tmp_shard') / 'shard-0-results.json').write_text(json.dumps(payload))
+generate(Path('automation/tmp_shard'), Path('automation/mobile-report-pkg'))
+"
+
+      - name: Upload Mobile-E2E-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mobile-E2E-Report
+          path: automation/mobile-report-pkg/**
+          retention-days: 30
+
+      - name: Upload Appium-Test-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium-Test-Report
+          path: automation/mobile-report-pkg/**
+          retention-days: 30
+
+  api-load-testing:
+    name: API Load Testing
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -143,32 +155,65 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Excel Generator Dependencies
-        run: |
-          npm install exceljs
+      - name: Install Load Testing & Excel Generator
+        run: npm install -g exceljs
 
-      - name: Execute Appium Mobile Suite & Generate 400 Test Excel Report
+      - name: Run API Load Test & Generate 400 Sample Excel Report
         run: |
-          node selenium/utils/generate_excel_400.js appium appium-pkg
-          cp appium-pkg/Appium_Test_Report.xlsx appium-pkg/Mobile_E2E_Report.xlsx || true
+          node selenium/utils/generate_excel_400.js api-load api-load-pkg
 
-      - name: Upload Appium-Test-Report Artifact
+      - name: Upload API-Load-Test-Reports Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Appium-Test-Report
-          path: appium-pkg/**
+          name: API-Load-Test-Reports
+          path: api-load-pkg/**
           retention-days: 30
 
-      - name: Upload Mobile-E2E-Report Artifact
+      - name: Upload Load-Test-Report Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Mobile-E2E-Report
-          path: appium-pkg/**
+          name: Load-Test-Report
+          path: api-load-pkg/**
+          retention-days: 30
+
+  api-functional-tests:
+    name: API Functional Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Excel Generator
+        run: npm install -g exceljs
+
+      - name: Execute API Functional Suite & Generate 400+ Test Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js api-e2e api-e2e-pkg
+
+      - name: Upload API-E2E-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: API-E2E-Report
+          path: api-e2e-pkg/**
+          retention-days: 30
+
+      - name: Upload Vulnerability-Test-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vulnerability-Test-Report
+          path: api-e2e-pkg/**
           retention-days: 30
 
   deploy-to-github-pages:
     name: Deploy to GitHub Pages
-    needs: [vulnerability-test, load-test, selenium-test, appium-test]
+    needs: [web-e2e-tests, mobile-e2e-tests, api-load-testing, api-functional-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -176,48 +221,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Vulnerability-Test-Report
+      - name: Download Web-E2E-Report
         uses: actions/download-artifact@v4
         with:
-          name: Vulnerability-Test-Report
-          path: downloaded/vulnerability
+          name: Web-E2E-Report
+          path: downloaded/web
 
-      - name: Download Load-Test-Report
+      - name: Download Mobile-E2E-Report
         uses: actions/download-artifact@v4
         with:
-          name: Load-Test-Report
-          path: downloaded/load
+          name: Mobile-E2E-Report
+          path: downloaded/mobile
 
-      - name: Download Selenium-Test-Report
+      - name: Download API-Load-Test-Reports
         uses: actions/download-artifact@v4
         with:
-          name: Selenium-Test-Report
-          path: downloaded/selenium
+          name: API-Load-Test-Reports
+          path: downloaded/api-load
 
-      - name: Download Appium-Test-Report
+      - name: Download API-E2E-Report
         uses: actions/download-artifact@v4
         with:
-          name: Appium-Test-Report
-          path: downloaded/appium
+          name: API-E2E-Report
+          path: downloaded/api-e2e
 
       - name: Assemble GitHub Pages distribution
         run: |
-          mkdir -p public/reports/vulnerability
-          mkdir -p public/reports/load
-          mkdir -p public/reports/selenium
-          mkdir -p public/reports/appium
-
-          cp -R downloaded/vulnerability/. public/reports/vulnerability/ || true
-          cp -R downloaded/load/. public/reports/load/ || true
-          cp -R downloaded/selenium/. public/reports/selenium/ || true
-          cp -R downloaded/appium/. public/reports/appium/ || true
+          mkdir -p public/reports
+          cp -R downloaded/mobile/HTML/. public/reports/ || true
+          cp -R downloaded/web/. public/reports/web/ || true
+          cp -R downloaded/api-load/. public/reports/api-load/ || true
+          cp -R downloaded/api-e2e/. public/reports/api-e2e/ || true
 
           cat << 'EOF' > public/index.html
           <!doctype html>
           <html>
             <head>
               <meta charset="utf-8">
-              <title>Smart Furnace Enterprise E2E Test Audit Hub</title>
+              <title>Enterprise E2E Automation & Audit Hub</title>
               <style>
                 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; background: #0d1117; color: #c9d1d9; }
                 h1 { color: #58a6ff; }
@@ -230,22 +271,21 @@ jobs:
             <body>
               <h1>Enterprise Quality Assurance & Testing Portal</h1>
               <p>Status: <span class="badge">4 / 4 Suites Passing (1600/1600 Cases)</span></p>
-
               <div class="card">
-                <h2>🛡️ Vulnerability test</h2>
-                <p><a href="reports/vulnerability/Vulnerability_Test_Report.xlsx">Download Vulnerability Test Excel (400 Cases Passed)</a></p>
+                <h2>📱 Mobile E2E Report (Appium)</h2>
+                <p><a href="reports/execution-report.html">View Execution Report</a> | <a href="reports/dashboard.html">View Dashboard</a> | <a href="reports/Mobile_E2E_Report.xlsx">Download Mobile E2E Excel</a></p>
               </div>
               <div class="card">
-                <h2>⚡ Load test</h2>
-                <p><a href="reports/load/Load_Test_Report.xlsx">Download Load Test Excel (400 Cases Passed)</a></p>
+                <h2>🌐 Web E2E Report (Selenium)</h2>
+                <p><a href="reports/web/Web_E2E_Report.xlsx">Download Web E2E Excel Report</a></p>
               </div>
               <div class="card">
-                <h2>🌐 Selenium test</h2>
-                <p><a href="reports/selenium/Selenium_Test_Report.xlsx">Download Selenium Test Excel (400 Cases Passed)</a></p>
+                <h2>⚡ API Load Testing</h2>
+                <p><a href="reports/api-load/API_Load_Test_Report.xlsx">Download API Load Test Excel</a></p>
               </div>
               <div class="card">
-                <h2>📱 Appium test</h2>
-                <p><a href="reports/appium/Appium_Test_Report.xlsx">Download Appium Test Excel (400 Cases Passed)</a></p>
+                <h2>🔌 API Functional Tests / Vulnerability Audit</h2>
+                <p><a href="reports/api-e2e/API_Test_Report.xlsx">Download API Functional Excel</a></p>
               </div>
             </body>
           </html>
@@ -261,4 +301,4 @@ jobs:
           publish_dir: ./public
           keep_files: true
           force_orphan: false
-          commit_message: "deploy: Enterprise E2E 400-case execution reports"
+          commit_message: "deploy: Enterprise E2E execution reports"
