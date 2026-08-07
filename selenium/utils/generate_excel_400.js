@@ -83,8 +83,8 @@ async function generateReport(type, outDir) {
   for (let i = 1; i <= 400; i++) {
     const suite = cfg.suites[i % cfg.suites.length];
     const caseId = type === 'api-e2e' ? `${cfg.prefix}${String(i).padStart(3, '0')}` : `${cfg.prefix}${String(i).padStart(3, '0')}`;
-    const caseText = type === 'api-e2e' 
-      ? `${caseId}: ${caseId}: Verify ${suite} validation index ${i}` 
+    const caseText = type === 'api-e2e'
+      ? `${caseId}: ${caseId}: Verify ${suite} validation index ${i}`
       : `${caseId}: Verify ${suite} execution flow index ${i}`;
 
     const row = ws.addRow({

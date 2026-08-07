@@ -111,17 +111,7 @@ jobs:
       - name: Generate Mobile 400+ Test Excel Report & HTML Artifacts
         run: |
           node selenium/utils/generate_excel_400.js mobile-e2e automation/mobile-report-pkg
-          python -c "
-import json
-from automation.data.generate_test_catalog import generate_catalog
-from automation.utils.report_generator import generate
-from pathlib import Path
-cases = generate_catalog()
-Path('automation/tmp_shard').mkdir(exist_ok=True)
-payload = {'metadata': {'device': 'Android Emulator', 'android_version': '29'}, 'results': cases[:400]}
-(Path('automation/tmp_shard') / 'shard-0-results.json').write_text(json.dumps(payload))
-generate(Path('automation/tmp_shard'), Path('automation/mobile-report-pkg'))
-"
+          python automation/build_ci_mobile_report.py
 
       - name: Upload Mobile-E2E-Report Artifact
         uses: actions/upload-artifact@v4
