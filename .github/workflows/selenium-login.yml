@@ -101,8 +101,7 @@ jobs:
         run: |
           pip install -r automation/requirements.txt
           python automation/data/generate_test_catalog.py
-          npm install -g exceljs
-          npm install exceljs
+          (cd selenium && npm install exceljs)
 
       - name: Run Mobile Catalog Contract Suite
         working-directory: automation
@@ -142,7 +141,8 @@ jobs:
           node-version: "20"
 
       - name: Install Load Testing & Excel Generator
-        run: npm install -g exceljs
+        run: |
+          (cd selenium && npm install exceljs)
 
       - name: Run API Load Test & Generate 400 Sample Excel Report
         run: |
@@ -177,7 +177,8 @@ jobs:
           node-version: "20"
 
       - name: Install Excel Generator
-        run: npm install -g exceljs
+        run: |
+          (cd selenium && npm install exceljs)
 
       - name: Execute API Functional Suite & Generate 400+ Test Excel Report
         run: |
