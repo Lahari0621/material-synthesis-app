@@ -1,4 +1,4 @@
-name: selenium-login.yml
+name: Web Selenium & Mobile E2E Automation Pipeline
 
 on:
   push:
