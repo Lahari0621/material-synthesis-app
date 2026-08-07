@@ -1,0 +1,52 @@
+base_material,target_material,target_compound,density_g_cm3,specific_heat_j_kg_k,is_feasible,required_temp_c,confidence_pct,notes
+Zn,Zn,Pure Zinc,7.14,388.0,1,100.0,100.0,Phase transition
+Zn,Fe,Iron Oxide (FeO),5.73,460.0,1,650.0,90.0,Can produce iron oxide from zinc
+Zn,Cu,Brass (Cu-Zn),8.4,400.0,1,950.0,85.0,Binary alloy - common
+Zn,Al,Zinc-Aluminum Alloy,3.5,600.0,1,500.0,80.0,Light alloy
+Fe,Steel,Steel Alloy,7.85,500.0,1,1200.0,95.0,Carbon incorporation
+Fe,Fe,Pure Iron,7.87,450.0,1,150.0,100.0,Phase transition/annealing
+Fe,Ni,Nickel Steel,7.8,490.0,1,1300.0,90.0,Alloy steel
+Fe,Cr,Stainless Steel,7.75,510.0,1,1350.0,92.0,With chromium
+Cu,Cu,Pure Copper,8.96,385.0,1,120.0,100.0,Phase transition
+Cu,Zn,Brass (Cu-Zn),8.4,400.0,1,900.0,90.0,Zinc addition
+Cu,Sn,Bronze (Cu-Sn),8.5,390.0,1,1050.0,88.0,Tin addition
+Cu,Ni,Copper-Nickel Alloy,8.8,400.0,1,950.0,85.0,Binary alloy
+Al,Al,Pure Aluminum,2.7,900.0,1,100.0,100.0,Phase transition
+Al,Fe,Aluminum-Iron Composite,5.5,600.0,1,1100.0,75.0,Composite formation
+Al,Cu,Aluminum-Copper Alloy,4.5,750.0,1,800.0,80.0,Duralumin
+Al,Mg,Aluminum-Magnesium Alloy,2.6,850.0,1,600.0,85.0,Lightweight
+Sn,Sn,Pure Tin,7.31,230.0,1,100.0,100.0,Phase transition
+Sn,Cu,Bronze (Sn-Cu),8.5,390.0,1,1050.0,88.0,Copper addition
+Sn,Pb,Lead-Free Solder,7.4,240.0,1,230.0,92.0,Common alloy
+Ni,Ni,Pure Nickel,8.91,445.0,1,100.0,100.0,Phase transition
+Ni,Fe,Nickel Steel,7.8,490.0,1,1300.0,90.0,Carbon + nickel
+Ni,Cr,Nickel-Chromium Alloy,8.5,450.0,1,1250.0,88.0,Alloy
+Mo,Mo,Pure Molybdenum,10.28,260.0,1,100.0,100.0,Phase transition
+Mo,Fe,Molybdenum Steel,7.88,480.0,1,1250.0,88.0,Alloy steel
+Mo,W,Molybdenum-Tungsten Alloy,14.5,190.0,1,1800.0,82.0,High-temp
+Ti,Ti,Pure Titanium,4.51,523.0,1,100.0,100.0,Phase transition
+Ti,Al,Titanium-Aluminum Alloy,5.0,530.0,1,950.0,92.0,Alpha alloy
+Ti,V,Titanium-Vanadium Alloy,5.1,525.0,1,1050.0,90.0,Beta alloy
+W,W,Pure Tungsten,19.3,132.0,1,100.0,100.0,Phase transition
+W,C,Tungsten Carbide,15.6,320.0,1,1600.0,89.0,With carbon
+W,Mo,Tungsten-Molybdenum Alloy,14.5,190.0,1,1800.0,82.0,High-temp
+Cr,Cr,Pure Chromium,7.19,448.0,1,100.0,100.0,Phase transition
+Cr,Fe,Chromium Steel,7.8,470.0,1,1200.0,91.0,Alloy steel
+Cr,Ni,Chromium-Nickel Alloy,8.5,450.0,1,1250.0,88.0,Stainless base
+Mg,Mg,Pure Magnesium,1.738,1020.0,1,100.0,100.0,Phase transition
+Mg,Al,Magnesium-Aluminum Alloy,2.0,950.0,1,550.0,88.0,Aluminum addition
+Mg,Zn,Magnesium-Zinc Alloy,2.3,800.0,1,480.0,85.0,Light alloy
+Pb,Pb,Pure Lead,11.34,129.0,1,100.0,100.0,Phase transition
+Pb,Sn,Solder Alloy,7.4,240.0,1,230.0,92.0,Tin alloy
+Pb,Cu,Leaded Copper,9.0,250.0,1,850.0,80.0,Bronze
+Bi,Bi,Pure Bismuth,9.75,122.0,1,100.0,100.0,Phase transition
+Bi,Pb,Bismuth-Lead Alloy,10.0,125.0,1,350.0,85.0,Low melting
+Co,Co,Pure Cobalt,8.9,420.0,1,100.0,100.0,Phase transition
+Co,Fe,Cobalt-Iron Alloy,8.0,430.0,1,1100.0,88.0,Ferromagnetic
+Mn,Mn,Pure Manganese,7.47,479.0,1,100.0,100.0,Phase transition
+Mn,Fe,Manganese Steel,7.8,480.0,1,1200.0,89.0,Alloyed steel
+V,V,Pure Vanadium,6.11,489.0,1,100.0,100.0,Phase transition
+V,Fe,Vanadium Steel,7.85,485.0,1,1250.0,87.0,Tool steel
+Si,Si,Pure Silicon,2.33,712.0,1,100.0,100.0,Phase transition
+Si,Al,Silicon-Aluminum Alloy,3.5,700.0,1,700.0,86.0,Electronic grade
+C,C,Graphite,2.26,710.0,1,3000.0,70.0,Graphitization

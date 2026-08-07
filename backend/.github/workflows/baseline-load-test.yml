@@ -1,0 +1,104 @@
+name: Baseline Load Testing (100 VU / 1 min)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  baseline-load-test:
+    name: Baseline Load Test Passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: furnace_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: rootpass
+      DB_NAME: furnace_db
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Initialize database schema
+        run: mysql --protocol=TCP -h 127.0.0.1 -P 3306 -uroot -prootpass < schema.sql
+
+      - name: Start Waitress API server
+        run: |
+          nohup python app.py > server.log 2>&1 &
+          echo $! > server.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5000/api/health >/dev/null; then
+              echo "API is healthy"
+              curl -s http://127.0.0.1:5000/api/health
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API failed to become healthy"
+          cat server.log || true
+          exit 1
+
+      - name: Warm up prediction caches
+        run: python warmup_models.py
+
+      - name: Run baseline load test (100 users / 60s)
+        run: |
+          python baseline_load_test.py \
+            --users 100 \
+            --duration 60 \
+            --host http://127.0.0.1:5000 \
+            --report baseline_load_report.json \
+            --max-error-rate 0.0
+
+      - name: Show load test summary
+        if: always()
+        run: |
+          python print_baseline_summary.py
+          echo "----- server.log -----"
+          tail -n 80 server.log || true
+
+      - name: Upload baseline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-load-report
+          path: |
+            baseline_load_report.json
+            server.log
+          if-no-files-found: ignore

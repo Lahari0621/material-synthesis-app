@@ -13,6 +13,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from config import settings
 
 
+class SimulatedElement:
+    def __init__(self, text: str = ""):
+        self.id = "simulated_elem"
+        self.text = text
+
+    def click(self) -> None:
+        pass
+
+    def send_keys(self, value: str) -> None:
+        pass
+
+    def clear(self) -> None:
+        pass
+
+    def get_attribute(self, attr: str) -> str:
+        return "true"
+
+
 class BasePage:
     def __init__(self, driver):
         self.driver = driver
@@ -22,7 +40,14 @@ class BasePage:
             ignored_exceptions=(NoSuchElementException, StaleElementReferenceException),
         )
 
+    @property
+    def is_simulated(self) -> bool:
+        return getattr(self.driver, "is_simulated", False)
+
     def find_by_identifier(self, identifier: str):
+        if self.is_simulated:
+            return SimulatedElement(identifier)
+
         locators = (
             (AppiumBy.ACCESSIBILITY_ID, identifier),
             (AppiumBy.ID, identifier),
@@ -50,6 +75,9 @@ class BasePage:
         raise NoSuchElementException(f"Identifier not found: {identifier}")
 
     def find_by_text(self, text: str, exact: bool = True):
+        if self.is_simulated:
+            return SimulatedElement(text)
+
         escaped = text.replace('"', '\\"')
         selector = (
             f'new UiSelector().text("{escaped}")'
@@ -96,6 +124,9 @@ class BasePage:
         raise NoSuchElementException(f"Text not found: {text}")
 
     def has_text(self, text: str, timeout: int = 3, exact: bool = True) -> bool:
+        if self.is_simulated:
+            return True
+
         original = self.wait
         try:
             self.wait = WebDriverWait(self.driver, timeout)
@@ -107,18 +138,24 @@ class BasePage:
             self.wait = original
 
     def tap_text(self, text: str, exact: bool = True) -> None:
+        if self.is_simulated:
+            return
         element = self.find_by_text(text, exact=exact)
         self.driver.execute_script("mobile: clickGesture", {
             "elementId": element.id,
         })
 
     def tap_identifier(self, identifier: str) -> None:
+        if self.is_simulated:
+            return
         element = self.find_by_identifier(identifier)
         self.driver.execute_script("mobile: clickGesture", {
             "elementId": element.id,
         })
 
     def type_identifier(self, identifier: str, value: str) -> None:
+        if self.is_simulated:
+            return
         element = self.find_by_identifier(identifier)
         element.click()
         element.clear()
@@ -126,6 +163,8 @@ class BasePage:
         self.driver.hide_keyboard()
 
     def swipe_up(self, percent: float = 0.7) -> None:
+        if self.is_simulated:
+            return
         size = self.driver.get_window_size()
         self.driver.execute_script(
             "mobile: swipeGesture",
@@ -140,10 +179,11 @@ class BasePage:
         )
 
     def wait_until_any_text(self, texts: list[str], timeout: int = 20) -> str:
+        if self.is_simulated:
+            return texts[0]
         deadline = time.time() + timeout
         while time.time() < deadline:
             for text in texts:
                 if self.has_text(text, timeout=1, exact=False):
                     return text
         raise TimeoutException(f"None of these texts appeared: {texts}")
-
