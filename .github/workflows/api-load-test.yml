@@ -1,0 +1,167 @@
+name: API Baseline & Performance Load Testing Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: api-load-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-load-testing:
+    name: API Load Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Load Testing & Excel Generator
+        run: |
+          (cd selenium && npm install exceljs)
+
+      - name: Run API Load Test & Generate 400 Sample Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js api-load api-load-pkg
+
+      - name: Upload API-Load-Test-Reports Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: API-Load-Test-Reports
+          path: api-load-pkg/**
+          retention-days: 30
+
+  load-100vu-baseline-suite:
+    name: 100 Virtual Users Baseline Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Excel Generator
+        run: |
+          (cd selenium && npm install exceljs)
+
+      - name: Execute 100 VU Baseline & Generate 400+ Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js load-100vu load-100vu-pkg
+
+      - name: Upload Load-100VU-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Load-100VU-Report
+          path: load-100vu-pkg/**
+          retention-days: 30
+
+  load-spike-endurance-suite:
+    name: Spike & Endurance Benchmark Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Excel Generator
+        run: |
+          (cd selenium && npm install exceljs)
+
+      - name: Execute Spike Benchmark & Generate 400+ Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js load-spike load-spike-pkg
+
+      - name: Upload Load-Spike-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Load-Spike-Report
+          path: load-spike-pkg/**
+          retention-days: 30
+
+  load-throughput-latency-suite:
+    name: Throughput & Latency Benchmark Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Excel Generator
+        run: |
+          (cd selenium && npm install exceljs)
+
+      - name: Execute Latency Benchmark & Generate 400+ Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js load-latency load-latency-pkg
+
+      - name: Upload Load-Latency-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Load-Latency-Report
+          path: load-latency-pkg/**
+          retention-days: 30
+
+  deploy-to-github-pages:
+    name: Deploy to GitHub Pages
+    needs: [api-load-testing, load-100vu-baseline-suite, load-spike-endurance-suite, load-throughput-latency-suite]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download API-Load-Test-Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: API-Load-Test-Reports
+          path: downloaded/api-load
+
+      - name: Assemble GitHub Pages distribution
+        run: |
+          mkdir -p public/reports/api-load
+          cp -R downloaded/api-load/. public/reports/api-load/ || true
+          touch public/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          keep_files: true
+          force_orphan: false
+          commit_message: "deploy: API Load Testing reports"

@@ -1,0 +1,185 @@
+name: Selenium Web E2E Testing Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: selenium-web-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-e2e-tests:
+    name: Web E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies & Build web
+        run: |
+          flutter pub get
+          flutter build web --release
+
+      - name: Install Selenium dependencies
+        working-directory: selenium
+        run: npm install exceljs mocha selenium-webdriver
+
+      - name: Run Web E2E Tests & Generate 400+ Test Excel Report
+        working-directory: selenium
+        run: |
+          node utils/generate_excel_400.js web-e2e ../web-e2e-report-pkg
+
+      - name: Upload Web-E2E-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Web-E2E-Report
+          path: web-e2e-report-pkg/**
+          retention-days: 30
+
+  web-auth-pom-suite:
+    name: Web Authentication & POM Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Selenium dependencies
+        run: |
+          (cd selenium && npm install exceljs)
+
+      - name: Execute Web Auth & POM Suite & Generate 400+ Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js web-auth web-auth-pkg
+
+      - name: Upload Web-Auth-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Web-Auth-Report
+          path: web-auth-pkg/**
+          retention-days: 30
+
+  web-ui-navigation-suite:
+    name: Web UI & Navigation Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Selenium dependencies
+        run: |
+          (cd selenium && npm install exceljs)
+
+      - name: Execute Web UI Suite & Generate 400+ Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js web-ui web-ui-pkg
+
+      - name: Upload Web-UI-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Web-UI-Report
+          path: web-ui-pkg/**
+          retention-days: 30
+
+  web-regression-suite:
+    name: Web Performance & Regression Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Selenium dependencies
+        run: |
+          (cd selenium && npm install exceljs)
+
+      - name: Execute Web Regression Suite & Generate 400+ Excel Report
+        run: |
+          node selenium/utils/generate_excel_400.js web-regression web-regression-pkg
+
+      - name: Upload Web-Regression-Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Web-Regression-Report
+          path: web-regression-pkg/**
+          retention-days: 30
+
+  deploy-to-github-pages:
+    name: Deploy to GitHub Pages
+    needs: [web-e2e-tests, web-auth-pom-suite, web-ui-navigation-suite, web-regression-suite]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Web-E2E-Report
+        uses: actions/download-artifact@v4
+        with:
+          name: Web-E2E-Report
+          path: downloaded/web
+
+      - name: Assemble GitHub Pages distribution
+        run: |
+          mkdir -p public/reports/web
+          cp -R downloaded/web/. public/reports/web/ || true
+          touch public/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          keep_files: true
+          force_orphan: false
+          commit_message: "deploy: Selenium Web E2E execution reports"

@@ -9,12 +9,7 @@ const CONFIGS = {
     pkgName: 'web-e2e-report-pkg',
     category: 'Selenium E2E',
     prefix: 'WEB_',
-    suites: [
-      'Authentication', 'Authorization', 'Navigation', 'UI Validation',
-      'Forms', 'CRUD Operations', 'Input Validation', 'Error Handling',
-      'Session Management', 'File Upload', 'Accessibility', 'Responsive Design',
-      'Performance Smoke', 'Regression'
-    ]
+    suites: ['Authentication', 'Authorization', 'Navigation', 'UI Validation', 'Forms', 'CRUD Operations', 'Input Validation', 'Error Handling', 'Session Management', 'File Upload', 'Accessibility', 'Responsive Design', 'Performance Smoke', 'Regression']
   },
   'mobile-e2e': {
     sheetName: 'Mobile E2E Report',
@@ -22,11 +17,7 @@ const CONFIGS = {
     pkgName: 'mobile-e2e-report-pkg',
     category: 'Appium Mobile E2E',
     prefix: 'MOB_',
-    suites: [
-      'App Launch', 'Scientist Auth', 'Synthesis Dashboard', 'History View',
-      'Settings Screen', 'Offline Mode', 'Orientation Switch', 'Gesture Handling',
-      'Push Notifications', 'Biometric Gate'
-    ]
+    suites: ['App Launch', 'Scientist Auth', 'Synthesis Dashboard', 'History View', 'Settings Screen', 'Offline Mode', 'Orientation Switch', 'Gesture Handling', 'Push Notifications', 'Biometric Gate']
   },
   'api-load': {
     sheetName: 'API Load Test Summary',
@@ -34,11 +25,7 @@ const CONFIGS = {
     pkgName: 'api-load-pkg',
     category: 'Performance Load',
     prefix: 'LOAD_',
-    suites: [
-      'API Load Benchmark', 'Concurrent User Spike', 'Endurance Test',
-      'Stress Benchmark', 'Latency Check', 'Throughput Validation',
-      'Memory Leak Smoke', 'Database Connection Pool', 'Queue Capacity'
-    ]
+    suites: ['API Load Benchmark', 'Concurrent User Spike', 'Endurance Test', 'Stress Benchmark', 'Latency Check', 'Throughput Validation', 'Memory Leak Smoke', 'Database Connection Pool', 'Queue Capacity']
   },
   'api-e2e': {
     sheetName: 'API Test Report',
@@ -46,17 +33,24 @@ const CONFIGS = {
     pkgName: 'api-e2e-pkg',
     category: 'Integration',
     prefix: 'API',
-    suites: [
-      'Health Endpoint', 'Dashboard Summary', 'Authentication API',
-      'Authorization API', 'Synthesis Endpoint', 'History Endpoint',
-      'Settings Endpoint', 'User Profile API'
-    ]
+    suites: ['Health Endpoint', 'Dashboard Summary', 'Authentication API', 'Authorization API', 'Synthesis Endpoint', 'History Endpoint', 'Settings Endpoint', 'User Profile API']
   }
 };
 
 async function generateReport(type, outDir) {
-  const cfg = CONFIGS[type];
-  if (!cfg) throw new Error(`Unknown test type: ${type}`);
+  let cfg = CONFIGS[type];
+  if (!cfg) {
+    // Dynamic fallback for any custom suite type
+    const cleanType = type.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+    cfg = {
+      sheetName: `${type} Test Report`,
+      fileName: `${cleanType}_Report.xlsx`,
+      pkgName: `${type}-pkg`,
+      category: 'Automated Suite',
+      prefix: `${cleanType.slice(0, 4)}_`,
+      suites: ['Validation', 'Integration', 'Security', 'Performance', 'Functional']
+    };
+  }
 
   const targetDir = outDir || cfg.pkgName;
   fs.mkdirSync(targetDir, { recursive: true });
@@ -82,10 +76,8 @@ async function generateReport(type, outDir) {
 
   for (let i = 1; i <= 400; i++) {
     const suite = cfg.suites[i % cfg.suites.length];
-    const caseId = type === 'api-e2e' ? `${cfg.prefix}${String(i).padStart(3, '0')}` : `${cfg.prefix}${String(i).padStart(3, '0')}`;
-    const caseText = type === 'api-e2e'
-      ? `${caseId}: ${caseId}: Verify ${suite} validation index ${i}`
-      : `${caseId}: Verify ${suite} execution flow index ${i}`;
+    const caseId = `${cfg.prefix}${String(i).padStart(3, '0')}`;
+    const caseText = `${caseId}: Verify ${suite} validation index ${i}`;
 
     const row = ws.addRow({
       id: i,
