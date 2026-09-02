@@ -7,10 +7,8 @@ import 'screens/main_app_shell.dart';
 import 'services/session_service.dart';
 
 void main() {
-  // Make Flutter web widgets discoverable for Selenium / accessibility.
-  if (kIsWeb) {
-    SemanticsBinding.instance.ensureSemantics();
-  }
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(const SmartFurnaceApp());
 }
 
