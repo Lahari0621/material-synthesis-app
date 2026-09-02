@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -44,10 +45,12 @@ pipeline {
                     docker exec ${FLUTTER_CONTAINER} sh -c \
                         "chown -R 1000:1000 /app/build/web"
 
-                    rm -rf build/web
+                    echo "Preparing Jenkins workspace..."
+                    rm -rf build
+                    mkdir -p build
 
                     echo "Copying Flutter web build back..."
-                    docker cp ${FLUTTER_CONTAINER}:/app/build/web ./build/web
+                    docker cp ${FLUTTER_CONTAINER}:/app/build/web ./build/
 
                     echo "Removing temporary Flutter container..."
                     docker rm -f ${FLUTTER_CONTAINER}
@@ -99,3 +102,4 @@ pipeline {
         }
     }
 }
+```
